@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Controle de Obras | Grupo Art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#fff;--fg:#000;--muted:#6e6e6e;--line:#e3e3e3;--soft:#efefef;--field:#fff;
+  --ok:#1b7a43;--mid:#a86b00;--bad:#c62f25;--bar:#000;
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#000;--fg:#f5f5f5;--muted:#9b9b9b;--line:#2a2a2a;--soft:#1c1c1c;--field:#0d0d0d;--ok:#3fbf73;--mid:#e0a93a;--bad:#ff6b5e;--bar:#fff;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#000;--fg:#f5f5f5;--muted:#9b9b9b;--line:#2a2a2a;--soft:#1c1c1c;--field:#0d0d0d;--ok:#3fbf73;--mid:#e0a93a;--bad:#ff6b5e;--bar:#fff;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 "Open Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:hidden}
+button,input,textarea{font:inherit;color:inherit}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:#000;color:#fff;border-bottom:1px solid #222}
+.top-in{max-width:760px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:12px}
+.logo{background:none;border:0;color:#fff;font-size:22px;letter-spacing:.01em;padding:0;cursor:pointer;white-space:nowrap}
+.logo span{font-weight:300}.logo b{font-weight:800}
+nav{display:flex;gap:2px}
+nav button{background:none;border:0;color:#a8a8a8;padding:8px 10px;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+nav button.on{color:#fff;background:#1f1f1f}
+.n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:#c62f25;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:700}
+
+#banner{background:var(--soft);font-size:13px;text-align:center;padding:8px 16px;color:var(--muted)}
+main{max-width:760px;margin:0 auto;padding:20px 18px 72px}
+
+h1{font-size:26px;font-weight:700;margin:0;line-height:1.2;letter-spacing:-.01em;overflow-wrap:anywhere}
+h2{font-size:14px;font-weight:700;margin:30px 0 8px}
+h3{font-size:13px;font-weight:700;margin:18px 0 4px}
+.sub{color:var(--muted);font-size:13px;display:block;font-weight:400}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+
+.btn{border:1px solid var(--fg);background:transparent;padding:8px 14px;border-radius:6px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+.btn.solid{background:var(--fg);color:var(--bg)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.back{background:none;border:0;padding:4px 0;color:var(--muted);font-weight:600;cursor:pointer;margin-bottom:12px;font-size:14px}
+
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.hero > div{min-width:0}
+.pct{font-weight:300;font-size:30px;line-height:1;white-space:nowrap}
+.pct small{font-size:.5em;font-weight:800;margin-left:1px}
+.pct.big{font-size:58px}
+.bar{height:4px;background:var(--soft);border-radius:2px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;background:var(--bar);transition:width .3s}
+
+.rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.row{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 0 16px;cursor:pointer}
+.row-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.row-top > div{min-width:0}
+.row strong{font-size:16px;font-weight:700;display:block;overflow-wrap:anywhere}
+.meta{font-size:13px;color:var(--muted);display:block;margin-top:2px}
+.bad{color:var(--bad);font-style:normal;font-weight:600}
+
+.segs,.segs-legend{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:3px}
+.segs{margin-top:10px}
+.segs i{height:6px;border-radius:1px;background:linear-gradient(90deg,var(--bar) var(--p),var(--soft) var(--p))}
+.segs i.late{background:linear-gradient(90deg,var(--bar) var(--p),var(--bad) var(--p))}
+.segs-legend{font-size:10px;color:var(--muted);margin-top:4px}
+.segs-legend span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);padding:6px 12px;border-radius:16px;font-size:14px;cursor:pointer}
+
+label{display:block;font-size:13px;font-weight:600;color:var(--muted)}
+input:not([type=checkbox]),textarea{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--field);font-size:16px;color:var(--fg)}
+textarea{resize:vertical;min-height:64px}
+input:focus,textarea:focus{outline:2px solid var(--fg);outline-offset:-1px;border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.inline{display:flex;gap:6px;margin-top:8px;align-items:stretch}
+.inline input{margin:0;flex:1;min-width:0}
+
+.form{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:8px;margin-bottom:18px}
+.busca{margin-bottom:12px}
+
+.etapas{border-top:1px solid var(--line);margin-top:22px}
+.etapa{border-bottom:1px solid var(--line)}
+.et-head{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;padding:15px 0;text-align:left;cursor:pointer}
+.et-dot{width:12px;height:12px;border-radius:50%;flex:none;border:2px solid var(--muted)}
+.st-andamento{border-color:var(--mid);background:var(--mid)}
+.st-ok{border-color:var(--ok);background:var(--ok)}
+.st-late{border-color:var(--bad);background:var(--bad)}
+.et-nome{flex:1;min-width:0;font-weight:700;font-size:16px}
+.et-pct{font-weight:300;font-size:22px;white-space:nowrap}
+.tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--bad);color:#fff;white-space:nowrap}
+.chev{color:var(--muted);transition:transform .2s;flex:none}
+.etapa.open .chev{transform:rotate(90deg)}
+.et-body{padding:0 0 20px 24px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{list-style:none;margin:0;padding:0}
+.check li{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.check label{display:flex;gap:10px;align-items:flex-start;flex:1;min-width:0;color:var(--fg);font-weight:400;font-size:15px;cursor:pointer}
+.check label span{overflow-wrap:anywhere}
+.check .done .txt{color:var(--muted)}
+.okb{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:9px;background:var(--ok);color:#fff;font-size:11px;font-weight:800;line-height:17px;vertical-align:1px}
+.check .done .who{color:var(--ok);font-weight:600}
+.check li.done-li{background:color-mix(in srgb,var(--ok) 7%,transparent)}
+.check .who{display:block;font-size:12px;color:var(--muted)}
+input[type=checkbox]{width:20px;height:20px;margin:1px 0 0;accent-color:var(--ok);flex:none;cursor:pointer}
+.x{background:none;border:0;color:var(--muted);font-size:22px;line-height:1;padding:0 4px;cursor:pointer;flex:none}
+.x.armed{color:var(--bad);font-size:12px;font-weight:700}
+.concl{display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--fg);font-weight:600}
+.obs{margin-top:16px}
+
+.empty{padding:28px 0;color:var(--muted)}
+.empty strong{color:var(--fg);display:block;margin-bottom:4px}
+details.dados{margin-top:34px;border-top:1px solid var(--line)}
+details.dados summary{cursor:pointer;font-weight:600;color:var(--muted);padding:12px 0}
+details.dados .form{margin-top:4px}
+
+.placar{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--fg);border-radius:8px;overflow:hidden;margin-bottom:22px}
+.placar button{background:var(--bg);border:0;border-left:1px solid var(--fg);padding:14px 10px 12px;text-align:left;cursor:pointer}
+.placar button:first-child{border-left:0}
+.placar button.on{background:var(--fg);color:var(--bg)}
+.placar b{display:block;font-weight:300;font-size:40px;line-height:1}
+.placar span{display:block;font-size:12px;font-weight:600;margin-top:6px;line-height:1.25}
+.placar button.alerta:not(.on) b{color:var(--bad)}
+.cli{margin-bottom:26px;border-top:3px solid var(--fg);padding-top:10px}
+.cli-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;background:none;border:0;padding:0;width:100%;text-align:left;cursor:pointer}
+.cli-top strong{font-size:18px;font-weight:700;overflow-wrap:anywhere}
+.cli-grupo{margin-top:12px}
+.cli-grupo h3{margin:0 0 2px;display:flex;justify-content:space-between;gap:8px}
+.cli-grupo h3 button{background:none;border:0;padding:0;font:inherit;cursor:pointer;text-align:left}
+.cli-grupo h3 .conta{color:var(--muted);font-weight:600}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:#000;color:#fff;border:1px solid #333;padding:10px 16px;border-radius:6px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;z-index:9}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+
+/* visão geral */
+.ov{border:1px solid var(--line);border-left:4px solid var(--fg);border-radius:8px;padding:14px 14px 12px;margin-bottom:10px}
+.ov-alerta{border-left-color:var(--bad)}
+.ov-ok{border-left-color:var(--ok)}
+.ov-top{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.ov-nome{flex:1;min-width:0}
+.ov-nome strong{font-size:17px;display:block;overflow-wrap:anywhere}
+.ov.open .chev{transform:rotate(90deg)}
+.badge{min-width:26px;height:26px;border-radius:13px;background:var(--bad);color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;flex:none}
+.badge.sm{min-width:20px;height:20px;font-size:11px;padding:0 6px}
+.ov-msg{margin:8px 0 0;font-size:13px}
+.okt{color:var(--ok);font-weight:600}
+.ov-ambs{list-style:none;margin:12px 0 0;padding:0;border-top:1px solid var(--line)}
+.ov-amb{display:block;width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 0;text-align:left;cursor:pointer}
+.ov-amb-top{display:flex;align-items:center;gap:8px}
+.ov-amb-top strong{flex:1;min-width:0;overflow-wrap:anywhere}
+.ov-amb-pct{font-weight:300;font-size:18px}
+.steps{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:4px;margin-top:8px}
+.stp i{display:block;height:8px;border-radius:2px;background:linear-gradient(90deg,var(--bar) var(--p),var(--soft) var(--p))}
+.stp.late i{background:linear-gradient(90deg,var(--bar) var(--p),var(--bad) var(--p))}
+.stp.atual i{outline:2px solid var(--fg);outline-offset:2px}
+.stp em{display:block;font-style:normal;font-size:10px;color:var(--muted);margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stp.atual em{color:var(--fg);font-weight:800}
+.stp.feito em{color:var(--ok);font-weight:600}
+.ov-abrir{margin-top:10px}
+.login{max-width:380px;margin:40px auto 0;text-align:center}
+.login .marca{font-size:34px;letter-spacing:.01em}
+.login .marca span{font-weight:300}.login .marca b{font-weight:800}
+.login .form{text-align:left;margin-top:22px}
+.sair{display:block;margin:30px auto 0}
+@media (max-width:520px){
+  .top-in{flex-wrap:wrap;row-gap:8px}
+  nav{width:100%}
+  nav button{flex:1}
+  .grid2{grid-template-columns:1fr}
+  .pct.big{font-size:46px}
+  .logo{font-size:19px}
+  nav button{padding:8px 8px;font-size:13px}
+  .et-body{padding-left:0}
+  .placar b{font-size:32px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <button class="logo" data-nav="geral" aria-label="Início"><span>GRUPO</span><b>ART</b></button>
+    <nav>
+      <button data-nav="geral" id="tab-geral">Visão geral</button>
+      <button data-nav="obras" id="tab-obras">Obras</button>
+      <button data-nav="pend" id="tab-pend">Pendências<span id="pend-count"></span></button>
+    </nav>
+  </div>
+</header>
+<div id="banner" hidden></div>
+<main id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<datalist id="pessoas"></datalist>
+
+<script>
+/* ===== CONFIGURAÇÃO: cole aqui os dados do seu projeto Supabase ===== */
+const SUPABASE_URL = 'COLE_AQUI_A_PROJECT_URL';
+const SUPABASE_KEY = 'COLE_AQUI_A_CHAVE_ANON_PUBLIC';
+/* ==================================================================== */
+const ETAPAS = [
+  {key:'projeto', nome:'Projeto executivo', curto:'Projeto', itens:['Medição conferida na obra','Projeto executivo pronto','Detalhamento aprovado pelo cliente','Enviado para a fábrica']},
+  {key:'compras', nome:'Compras', curto:'Compras', itens:['Chapas / MDF','Ferragens (dobradiças, corrediças)','Puxadores','Vidros e espelhos','Iluminação / LED','Pedra / marmoraria']},
+  {key:'producao', nome:'Produção', curto:'Produção', itens:['Corte','Fitagem','Furação e usinagem','Conferência e embalagem']},
+  {key:'montagem', nome:'Montagem', curto:'Montagem', itens:['Entregue na obra','Instalado','Portas e gavetas reguladas','Acabamentos e arremates','Limpeza final']},
+  {key:'entrega', nome:'Entrega', curto:'Entrega', itens:['Vistoria com o cliente','Cliente aprovou']}
+];
+const SUG_AMB = ['Cozinha','Sala','Suíte','Quarto','Banheiro','Lavanderia','Home office','Closet','Área gourmet'];
+const SUG_MOV = ['Gabinete','Aéreo','Torre quente','Paneleiro','Painel','Rack','Roupeiro','Cabeceira','Bancada','Nicho','Balcão','Estante'];
+
+const S = {view:'geral', exp:new Set(), gFiltro:'todas', id:null, mid:null, obras:[], ambs:[], open:new Set(), feitos:new Set(), painel:'pend', novaObra:false, busca:'', mode:'loading', loaded:{obras:false, ambientes:false}};
+let store = null;
+const app = document.getElementById('app');
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const hoje = () => new Date().toLocaleDateString('sv-SE');
+const fmtData = d => d ? d.slice(8,10) + '/' + d.slice(5,7) : '';
+const plural = (n, s, p) => n + ' ' + (n === 1 ? s : p);
+const media = l => l.length ? Math.round(l.reduce((s,x) => s + x, 0) / l.length) : 0;
+function dias(ts){ if(!ts) return ''; const d = Math.floor((Date.now()-ts)/86400000); return d <= 0 ? 'hoje' : d === 1 ? 'há 1 dia' : 'há ' + d + ' dias'; }
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2800); }
+
+/* ---------- cálculos ---------- */
+function etapaPct(e){
+  const tot = e.itens.length + e.pend.length;
+  if(!tot) return e.ok ? 100 : 0;
+  return Math.round((e.itens.filter(i => i.ok).length + e.pend.filter(p => p.ok).length) / tot * 100);
+}
+const atrasada = e => !!e.prazo && e.prazo < hoje() && etapaPct(e) < 100;
+function estado(e){ const p = etapaPct(e); if(p === 100) return 'ok'; if(atrasada(e)) return 'late'; return p > 0 ? 'andamento' : 'novo'; }
+const movPct = m => media(m.etapas.map(etapaPct));
+const ambPct = a => media(a.moveis.map(movPct));
+const ambsDe = oid => S.ambs.filter(a => a.obraId === oid).sort((a,b) => (a.criado||0) - (b.criado||0));
+const obraPct = oid => media(ambsDe(oid).map(ambPct));
+const pendMov = m => m.etapas.reduce((s,e) => s + e.pend.filter(p => !p.ok).length, 0);
+const pendAmb = a => a.pend.filter(p => !p.ok).length + a.moveis.reduce((s,m) => s + pendMov(m), 0);
+const comprasAmb = a => a.moveis.reduce((s,m) => { const e = m.etapas.find(x => x.key === 'compras'); return s + (e ? e.itens.filter(i => !i.ok).length : 0); }, 0);
+const pendObra = oid => { const o = obra(oid); return (o ? o.pend.filter(p => !p.ok).length : 0) + ambsDe(oid).reduce((s,a) => s + pendAmb(a), 0); };
+const atrasosAmb = a => a.moveis.reduce((s,m) => s + m.etapas.filter(atrasada).length, 0);
+const atrasosObra = oid => ambsDe(oid).reduce((s,a) => s + atrasosAmb(a), 0);
+
+function novasEtapas(){
+  return ETAPAS.map(e => ({key:e.key, nome:e.nome, resp:'', prazo:'', obs:'', ok:false, itens:e.itens.map(t => ({id:uid(), t, ok:false})), pend:[]}));
+}
+function fixEtapas(l){
+  l = Array.isArray(l) ? l : novasEtapas();
+  l.forEach(e => { e.itens = Array.isArray(e.itens) ? e.itens : []; e.pend = Array.isArray(e.pend) ? e.pend : []; });
+  return l;
+}
+function fixAmb(a){
+  a.pend = Array.isArray(a.pend) ? a.pend : [];
+  if(!Array.isArray(a.moveis)){
+    a.moveis = Array.isArray(a.etapas) && a.etapas.length ? [{id:a.id + '-m1', nome:'Ambiente todo', criado:a.criado || 0, etapas:a.etapas}] : [];
+  }
+  delete a.etapas;
+  a.moveis.forEach(m => { m.etapas = fixEtapas(m.etapas); });
+  return a;
+}
+function fixObra(o){ o.pend = Array.isArray(o.pend) ? o.pend : []; return o; }
+
+/* ---------- armazenamento ---------- */
+function norm(s){
+  let a = Array.isArray(s) ? s : (s && (s.docs || s.items || s.results || s.documents)) || [];
+  if(!Array.isArray(a)) a = Object.values(a);
+  return a.map(d => {
+    if(!d) return null;
+    const v = typeof d.data === 'function' ? d.data() : (d.data && typeof d.data === 'object') ? d.data : (d.value && typeof d.value === 'object') ? d.value : d;
+    const id = (v && v.id) || d.id || String(d.path || (d.ref && d.ref.path) || '').split('/').pop();
+    return v && id ? {...v, id} : null;
+  }).filter(Boolean);
+}
+function localStore(){
+  const K = 'grupoart-obras-v1';
+  let data = {obras:{}, ambientes:{}};
+  try{ const r = JSON.parse(localStorage.getItem(K)); if(r && r.obras) data = r; }catch(e){}
+  const subs = {};
+  const salvar = () => { try{ localStorage.setItem(K, JSON.stringify(data)); }catch(e){} };
+  const emit = c => subs[c] && subs[c](Object.values(data[c]).map(x => JSON.parse(JSON.stringify(x))));
+  return {
+    async set(p, d){ const [c,id] = p.split('/'); data[c][id] = d; salvar(); emit(c); },
+    async del(p){ const [c,id] = p.split('/'); delete data[c][id]; salvar(); emit(c); },
+    sub(c, cb){ subs[c] = cb; emit(c); }
+  };
+}
+function dbStore(db){
+  return {
+    set: (p, d) => db.doc(p).set(d),
+    del: p => db.doc(p).delete(),
+    sub(c, cb){
+      const col = db.collection(c);
+      let polling = false;
+      const poll = () => {
+        if(polling) return; polling = true;
+        const tick = async () => { try{ cb(norm(await col.get())); }catch(e){} };
+        tick(); setInterval(tick, 5000);
+      };
+      if(typeof col.onSnapshot === 'function'){
+        try{
+          const r = col.onSnapshot(s => cb(norm(s)), () => poll());
+          if(r && typeof r.catch === 'function') r.catch(() => poll());
+        }catch(e){ poll(); }
+      } else poll();
+    }
+  };
+}
+
+const pending = new Map();
+const busy = new Set();
+async function write(p, d){
+  pending.set(p, d === null ? null : JSON.parse(JSON.stringify(d)));
+  if(busy.has(p) || !store) return;
+  busy.add(p);
+  while(pending.has(p)){
+    const cur = pending.get(p);
+    try{ if(cur === null) await store.del(p); else await store.set(p, cur); }
+    catch(e){ falha(e); }
+    if(pending.get(p) === cur) pending.delete(p);
+  }
+  busy.delete(p);
+}
+const put = (c, o) => write(c + '/' + o.id, o);
+const remove = (c, id) => write(c + '/' + id, null);
+function supaStore(sb){
+  return {
+    async set(p, d){ const [c,id] = p.split('/'); const {error} = await sb.from(c).upsert({id, data:d, updated_at:new Date().toISOString()}); if(error) throw error; },
+    async del(p){ const [c,id] = p.split('/'); const {error} = await sb.from(c).delete().eq('id', id); if(error) throw error; },
+    sub(c, cb){
+      const map = new Map();
+      const emit = () => cb([...map.values()].map(x => JSON.parse(JSON.stringify(x))));
+      const carregar = async () => {
+        const {data, error} = await sb.from(c).select('id,data');
+        if(error){ toast('Não foi possível carregar os dados. Confira a conexão.'); return; }
+        map.clear(); data.forEach(r => map.set(r.id, {...r.data, id:r.id})); emit();
+      };
+      carregar();
+      setInterval(carregar, 20000);
+      document.addEventListener('visibilitychange', () => { if(!document.hidden) carregar(); });
+      sb.channel('rt-' + c).on('postgres_changes', {event:'*', schema:'public', table:c}, pl => {
+        if(pl.eventType === 'DELETE'){ if(pl.old && pl.old.id) map.delete(pl.old.id); }
+        else if(pl.new && pl.new.id) map.set(pl.new.id, {...pl.new.data, id:pl.new.id});
+        emit();
+      }).subscribe();
+    }
+  };
+}
+function falha(e){
+  const code = (e && (e.code || e.name)) || '';
+  if(/not_granted|not_writer|permission|denied|forbidden/i.test(code + ' ' + (e && e.message)))
+    toast('Seu acesso é só de leitura. Peça acesso de edição a quem compartilhou.');
+  else toast('Não foi possível salvar. Confira a conexão e tente de novo.');
+}
+function onColl(c, list){
+  const key = c === 'obras' ? 'obras' : 'ambs';
+  const local = new Map(S[key].map(x => [x.id, x]));
+  let out = [];
+  for(const x of list){
+    const p = c + '/' + x.id;
+    if(pending.has(p)){ if(pending.get(p) !== null && local.get(x.id)) out.push(local.get(x.id)); }
+    else out.push(x);
+  }
+  for(const [p, d] of pending){
+    const [cc, id] = p.split('/');
+    if(cc === c && d !== null && !out.some(x => x.id === id) && local.get(id)) out.push(local.get(id));
+  }
+  S[key] = out.map(c === 'ambientes' ? fixAmb : fixObra);
+  S.loaded[c] = true;
+  schedule();
+}
+
+/* ---------- navegação ---------- */
+const amb = id => S.ambs.find(a => a.id === id);
+const obra = id => S.obras.find(o => o.id === id);
+const mov = (a, mid) => a && a.moveis.find(m => m.id === mid);
+const etp = (m, k) => m && m.etapas.find(e => e.key === k);
+
+function go(view, id, mid){
+  S.view = view; S.id = id || null; S.mid = mid || null;
+  if(view === 'mov'){
+    const m = mov(amb(id), mid);
+    if(m && ![...S.open].some(k => k.startsWith(mid + ':'))){
+      const prox = m.etapas.find(e => etapaPct(e) < 100);
+      if(prox) S.open.add(mid + ':' + prox.key);
+    }
+  }
+  try{ history.pushState({view, id:S.id, mid:S.mid}, ''); }catch(e){}
+  render(); window.scrollTo(0, 0);
+}
+window.addEventListener('popstate', ev => { const st = ev.state || {view:'geral'}; S.view = st.view; S.id = st.id; S.mid = st.mid; render(); });
+
+/* ---------- peças de tela ---------- */
+function vazio(t, s){ return `<div class="empty"><strong>${t}</strong>${s}</div>`; }
+const OKB = '<span class="okb">OK</span>';
+function quando(ts){ return ts ? 'em ' + new Date(ts).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) : ''; }
+function linhaItem(i, attrs, onde, del){
+  return `<li class="${i.ok ? 'done-li' : ''}"><label class="${i.ok ? 'done' : ''}"><input type="checkbox" ${attrs} data-i="${i.id}" ${i.ok ? 'checked' : ''}><span><span class="txt">${esc(i.t)}</span>${i.ok ? OKB : ''}${i.ok || onde ? `<span class="who">${onde ? esc(onde) + (i.ok ? ', ' : '') : ''}${i.ok ? 'feito ' + quando(i.quando) : ''}</span>` : ''}</span></label>${del || ''}</li>`;
+}
+const visivel = x => !x.ok || S.feitos.has(x.id);
+function linhaPend(p, attrs, onde, del){
+  return `<li class="${p.ok ? 'done-li' : ''}"><label class="${p.ok ? 'done' : ''}"><input type="checkbox" ${attrs} data-i="${p.id}" ${p.ok ? 'checked' : ''}><span><span class="txt">${esc(p.t)}</span>${p.ok ? OKB : ''}<span class="who">${onde ? esc(onde) + ', ' : ''}${p.ok ? 'resolvida ' + quando(p.resolvida) : 'aberta ' + dias(p.criada)}</span></span></label>${del || ''}</li>`;
+}
+function listaPend(lista, okAttr, delAct, delAttr){
+  const l = [...lista.filter(x => !x.ok), ...lista.filter(x => x.ok)];
+  return `<ul class="check">${l.map(x => linhaPend(x, okAttr, '', `<button class="x" data-act="${delAct}" ${delAttr} data-i="${x.id}" aria-label="Remover pendência">×</button>`)).join('')}</ul>`;
+}
+function segsDe(pcts, lates){
+  return `<div class="segs" style="--n:${pcts.length}">${pcts.map((p,i) => `<i class="${lates[i] ? 'late' : ''}" style="--p:${p}%" title="${ETAPAS[i] ? ETAPAS[i].nome : ''}: ${p}%"></i>`).join('')}</div>`;
+}
+const legenda = () => `<div class="segs-legend" style="--n:${ETAPAS.length}">${ETAPAS.map(e => `<span>${e.curto}</span>`).join('')}</div>`;
+function segsAmb(a){
+  const pcts = ETAPAS.map(E => media(a.moveis.map(m => { const e = etp(m, E.key); return e ? etapaPct(e) : 0; })));
+  const lates = ETAPAS.map(E => a.moveis.some(m => { const e = etp(m, E.key); return e && atrasada(e); }));
+  return segsDe(pcts, lates);
+}
+const segsMov = m => segsDe(m.etapas.map(etapaPct), m.etapas.map(atrasada));
+function agora(m){ const e = m.etapas.find(x => etapaPct(x) < 100); return e ? `Agora: ${esc(e.nome)}${e.resp ? ' com ' + esc(e.resp) : ''}` : 'Concluído'; }
+
+/* ---------- obras ---------- */
+function linhaObra(o){
+  const p = obraPct(o.id), np = pendObra(o.id), na = ambsDe(o.id).length, at = atrasosObra(o.id);
+  const extras = [plural(na, 'ambiente', 'ambientes')];
+  if(np) extras.push(`<em class="bad">${plural(np, 'pendência', 'pendências')}</em>`);
+  if(at) extras.push(`<em class="bad">${plural(at, 'etapa atrasada', 'etapas atrasadas')}</em>`);
+  return `<li><button class="row" data-act="go-obra" data-id="${o.id}">
+    <div class="row-top"><div><strong>${esc(o.nome)}</strong>${o.local ? `<span class="sub">${esc(o.local)}</span>` : ''}<span class="meta">${extras.join(', ')}</span></div>
+    <div class="pct">${p}<small>%</small></div></div>
+    <div class="bar"><i style="width:${p}%"></i></div></button></li>`;
+}
+function listaObras(){
+  const q = S.busca.trim().toLowerCase();
+  const l = [...S.obras].sort((a,b) => (b.criado||0) - (a.criado||0)).filter(o => !q || (o.nome + ' ' + (o.local||'')).toLowerCase().includes(q));
+  if(!S.obras.length) return vazio('Nenhuma obra cadastrada ainda.', 'Assim que o contrato fechar, o comercial cadastra a obra aqui e o projeto começa.');
+  if(!l.length) return vazio('Nenhum cliente encontrado.', 'Confira o nome digitado.');
+  return l.map(linhaObra).join('');
+}
+function vObras(){
+  return `<section class="head"><h1>Obras</h1><button class="btn ${S.novaObra ? '' : 'solid'}" data-act="toggle-nova">${S.novaObra ? 'Cancelar' : 'Nova obra'}</button></section>
+  ${S.novaObra ? `<div class="form">
+     <span class="sub">Cadastre depois que o contrato estiver fechado. Em seguida, adicione os ambientes e os itens vendidos.</span>
+     <label>Cliente<input id="no-nome" placeholder="Nome do cliente" autocomplete="off"></label>
+     <label>Obra ou endereço<input id="no-local" placeholder="Ex.: Apto 42, Residencial Bless, Barueri" autocomplete="off"></label>
+     <button class="btn solid" data-act="criar-obra">Criar obra</button></div>` : ''}
+  ${S.obras.length > 4 ? `<input class="busca" id="busca" type="search" placeholder="Buscar cliente" value="${esc(S.busca)}" aria-label="Buscar cliente">` : ''}
+  <ul class="rows" id="lista-obras">${listaObras()}</ul>`;
+}
+
+/* ---------- obra: ambientes ---------- */
+function linhaAmb(a){
+  const p = ambPct(a), np = pendAmb(a);
+  const extras = [a.moveis.length ? a.moveis.map(m => esc(m.nome)).join(', ') : 'Nenhum item ainda'];
+  if(np) extras.push(`<em class="bad">${plural(np, 'pendência', 'pendências')}</em>`);
+  return `<li><button class="row" data-act="go-amb" data-id="${a.id}">
+    <div class="row-top"><div><strong>${esc(a.nome)}</strong><span class="meta">${extras.join(', ')}</span></div>
+    <div class="pct">${p}<small>%</small></div></div>${segsAmb(a)}</button></li>`;
+}
+function vObra(){
+  const o = obra(S.id);
+  if(!o) return `<button class="back" data-nav="obras">‹ Obras</button>` + vazio('Esta obra foi excluída.', 'Volte para a lista de obras.');
+  const l = ambsDe(o.id), p = obraPct(o.id);
+  return `<button class="back" data-nav="obras">‹ Obras</button>
+  <section class="hero"><div><h1>${esc(o.nome)}</h1>${o.local ? `<span class="sub">${esc(o.local)}</span>` : ''}</div><div class="pct big">${p}<small>%</small></div></section>
+  <div class="bar"><i style="width:${p}%"></i></div>
+  <h2>Ambientes</h2>
+  ${l.length ? `<ul class="rows">${l.map(linhaAmb).join('')}</ul>${legenda()}` : vazio('Nenhum ambiente ainda.', 'Escolha abaixo os ambientes vendidos nesta obra.')}
+  <h2>Adicionar ambiente</h2>
+  <div class="chips">${SUG_AMB.map(n => `<button class="chip" data-act="add-amb" data-nome="${n}">${n}</button>`).join('')}</div>
+  <div class="inline"><input id="na-nome" placeholder="Outro ambiente" autocomplete="off"><button class="btn" data-act="add-amb-custom">Adicionar</button></div>
+  <h2>Pendências gerais do cliente</h2>
+  <span class="sub">O que não é de um ambiente só: liberação da obra, medida de eletro, decisão do cliente, acesso ao condomínio.</span>
+  ${listaPend(o.pend, `data-f="obra-pend-ok" data-o="${o.id}"`, 'del-obra-pend', `data-o="${o.id}"`)}
+  <div class="inline"><input id="nop" placeholder="O que ficou faltando?" autocomplete="off"><button class="btn" data-act="add-obra-pend" data-o="${o.id}">Adicionar</button></div>
+  <details class="dados"><summary>Dados da obra</summary><div class="form">
+    <label>Cliente<input data-f="obra-nome" value="${esc(o.nome)}"></label>
+    <label>Obra ou endereço<input data-f="obra-local" value="${esc(o.local)}"></label>
+    <button class="btn danger" data-act="del-obra" data-id="${o.id}">Excluir obra</button></div></details>`;
+}
+
+/* ---------- ambiente: itens ---------- */
+function linhaMov(a, m){
+  const p = movPct(m), np = pendMov(m);
+  return `<li><button class="row" data-act="go-mov" data-a="${a.id}" data-m="${m.id}">
+    <div class="row-top"><div><strong>${esc(m.nome)}</strong><span class="meta">${agora(m)}${np ? `, <em class="bad">${plural(np, 'pendência', 'pendências')}</em>` : ''}</span></div>
+    <div class="pct">${p}<small>%</small></div></div>${segsMov(m)}</button></li>`;
+}
+function vAmb(){
+  const a = amb(S.id);
+  if(!a) return `<button class="back" data-nav="obras">‹ Obras</button>` + vazio('Este ambiente foi excluído.', 'Volte para a obra.');
+  const o = obra(a.obraId), p = ambPct(a);
+  const l = [...a.moveis].sort((x,y) => (x.criado||0) - (y.criado||0));
+  return `<button class="back" data-act="go-obra" data-id="${a.obraId}">‹ ${esc(o ? o.nome : 'Obra')}</button>
+  <section class="hero"><div><h1>${esc(a.nome)}</h1><span class="sub">${esc(o ? o.nome : '')}</span></div><div class="pct big">${p}<small>%</small></div></section>
+  <div class="bar"><i style="width:${p}%"></i></div>
+  <h2>Itens</h2>
+  ${l.length ? `<ul class="rows">${l.map(m => linhaMov(a, m)).join('')}</ul>${legenda()}` : vazio('Nenhum item ainda.', 'Adicione abaixo os móveis deste ambiente: gabinete, aéreo, torre, painel.')}
+  <h2>Adicionar item</h2>
+  <div class="chips">${SUG_MOV.map(n => `<button class="chip" data-act="add-mov" data-a="${a.id}" data-nome="${n}">${n}</button>`).join('')}</div>
+  <div class="inline"><input id="nm-nome" placeholder="Outro item" autocomplete="off"><button class="btn" data-act="add-mov-custom" data-a="${a.id}">Adicionar</button></div>
+  <h2>Pendências do ambiente</h2>
+  <span class="sub">O que é do ambiente inteiro e não de um item só.</span>
+  ${listaPend(a.pend, `data-f="amb-pend-ok" data-a="${a.id}"`, 'del-amb-pend', `data-a="${a.id}"`)}
+  <div class="inline"><input id="nap" placeholder="O que ficou faltando?" autocomplete="off"><button class="btn" data-act="add-amb-pend" data-a="${a.id}">Adicionar</button></div>
+  <details class="dados"><summary>Dados do ambiente</summary><div class="form">
+    <label>Nome do ambiente<input data-f="amb-nome" data-a="${a.id}" value="${esc(a.nome)}"></label>
+    <button class="btn danger" data-act="del-amb" data-id="${a.id}">Excluir ambiente</button></div></details>`;
+}
+
+/* ---------- item: etapas ---------- */
+function corpoEtapa(a, m, e){
+  const A = `data-a="${a.id}" data-m="${m.id}" data-k="${e.key}"`;
+  return `<div class="et-body">
+    <div class="grid2">
+      <label>Responsável<input list="pessoas" data-f="resp" ${A} value="${esc(e.resp)}" placeholder="Quem cuida desta etapa" autocomplete="off"></label>
+      <label>Prazo<input type="date" data-f="prazo" ${A} value="${esc(e.prazo)}"></label>
+    </div>
+    <h3>Checklist</h3>
+    <ul class="check">${e.itens.map(i => linhaItem(i, `data-f="item-ok" ${A}`, '', `<button class="x" data-act="del-item" ${A} data-i="${i.id}" aria-label="Remover item">×</button>`)).join('')}</ul>
+    <div class="inline"><input id="ni-${e.key}" placeholder="Novo item do checklist" autocomplete="off"><button class="btn" data-act="add-item" ${A}>Adicionar</button></div>
+    ${!e.itens.length && !e.pend.length ? `<label class="concl"><input type="checkbox" data-f="etapa-ok" ${A} ${e.ok ? 'checked' : ''}> Etapa concluída</label>` : ''}
+    <h3>Pendências</h3>
+    ${listaPend(e.pend, `data-f="pend-ok" ${A}`, 'del-pend', A)}
+    <div class="inline"><input id="np-${e.key}" placeholder="O que ficou faltando?" autocomplete="off"><button class="btn" data-act="add-pend" ${A}>Adicionar</button></div>
+    <label class="obs">Observações<textarea data-f="obs" ${A} rows="2" placeholder="Detalhes de montagem, medidas, recados para a equipe">${esc(e.obs)}</textarea></label>
+  </div>`;
+}
+function vMov(){
+  const a = amb(S.id), m = mov(a, S.mid);
+  if(!a || !m) return `<button class="back" data-nav="obras">‹ Obras</button>` + vazio('Este item foi excluído.', 'Volte para o ambiente.');
+  const o = obra(a.obraId), p = movPct(m);
+  return `<button class="back" data-act="go-amb" data-id="${a.id}">‹ ${esc(a.nome)}</button>
+  <section class="hero"><div><h1>${esc(m.nome)}</h1><span class="sub">${esc(a.nome)}, ${esc(o ? o.nome : '')}</span></div><div class="pct big">${p}<small>%</small></div></section>
+  <div class="bar"><i style="width:${p}%"></i></div>
+  <div class="etapas">${m.etapas.map(e => {
+    const aberta = S.open.has(m.id + ':' + e.key), np = e.pend.filter(x => !x.ok).length, st = estado(e);
+    const sub = [e.resp || 'Sem responsável'];
+    if(e.prazo) sub.push((atrasada(e) ? 'atrasada desde ' : 'até ') + fmtData(e.prazo));
+    return `<section class="etapa ${aberta ? 'open' : ''}">
+      <button class="et-head" data-act="toggle-etapa" data-m="${m.id}" data-k="${e.key}" aria-expanded="${aberta}">
+        <span class="et-dot st-${st}"></span>
+        <span class="et-nome">${esc(e.nome)}<span class="sub ${st === 'late' ? 'bad' : ''}">${esc(sub.join(', '))}</span></span>
+        ${np ? `<span class="tag">${np}</span>` : ''}
+        <span class="et-pct">${etapaPct(e)}%</span><span class="chev">›</span>
+      </button>${aberta ? corpoEtapa(a, m, e) : ''}</section>`;
+  }).join('')}</div>
+  <details class="dados"><summary>Dados do item</summary><div class="form">
+    <label>Nome do item<input data-f="mov-nome" data-a="${a.id}" data-m="${m.id}" value="${esc(m.nome)}"></label>
+    <button class="btn danger" data-act="del-mov" data-a="${a.id}" data-m="${m.id}">Excluir item</button></div></details>`;
+}
+
+/* ---------- visão geral ---------- */
+function etapasAmb(a){
+  const pcts = ETAPAS.map(E => media(a.moveis.map(m => { const e = etp(m, E.key); return e ? etapaPct(e) : 0; })));
+  const lates = ETAPAS.map(E => a.moveis.some(m => { const e = etp(m, E.key); return e && atrasada(e); }));
+  return {pcts, lates, idx: a.moveis.length ? pcts.findIndex(p => p < 100) : -2};
+}
+function ovAmb(a){
+  const {pcts, lates, idx} = etapasAmb(a), np = pendAmb(a);
+  const status = idx === -2 ? 'Sem itens cadastrados' : idx === -1 ? 'Ambiente concluído' : `Etapa atual: ${ETAPAS[idx].nome}, ${pcts[idx]}%${lates[idx] ? ' (atrasada)' : ''}`;
+  return `<li><button class="ov-amb" data-act="go-amb" data-id="${a.id}">
+    <span class="ov-amb-top"><strong>${esc(a.nome)}</strong>${np ? `<span class="badge sm" title="Pendências abertas">${np}</span>` : ''}<span class="ov-amb-pct">${ambPct(a)}%</span></span>
+    <span class="sub ${idx >= 0 && lates[idx] ? 'bad' : idx === -1 ? 'okt' : ''}">${status}</span>
+    <span class="steps" style="--n:${ETAPAS.length}">${ETAPAS.map((E,i) => `<span class="stp ${pcts[i] === 100 ? 'feito' : ''} ${i === idx ? 'atual' : ''} ${lates[i] ? 'late' : ''}"><i style="--p:${pcts[i]}%"></i><em>${E.curto}</em></span>`).join('')}</span>
+  </button></li>`;
+}
+function vGeral(){
+  let l = S.obras.map(o => ({o, p:obraPct(o.id), np:pendObra(o.id), at:atrasosObra(o.id), n:ambsDe(o.id).length}));
+  const alerta = x => x.np + x.at, feita = x => x.n > 0 && x.p === 100;
+  const cont = {todas:l.length, pend:l.filter(x => alerta(x) > 0).length, ok:l.filter(feita).length};
+  if(S.gFiltro === 'pend') l = l.filter(x => alerta(x) > 0);
+  if(S.gFiltro === 'ok') l = l.filter(feita);
+  l.sort((a,b) => (alerta(b) > 0) - (alerta(a) > 0) || (b.o.criado||0) - (a.o.criado||0));
+  const card = x => {
+    const al = alerta(x), aberto = S.exp.has(x.o.id);
+    const msg = al ? [x.np ? plural(x.np, 'pendência para finalizar', 'pendências para finalizar') : '', x.at ? plural(x.at, 'etapa atrasada', 'etapas atrasadas') : ''].filter(Boolean).join(', ') : '';
+    return `<section class="ov ${al ? 'ov-alerta' : feita(x) ? 'ov-ok' : ''} ${aberto ? 'open' : ''}">
+      <button class="ov-top" data-act="exp" data-id="${x.o.id}" aria-expanded="${aberto}">
+        <span class="ov-nome"><strong>${esc(x.o.nome)}</strong><span class="sub">${plural(x.n, 'ambiente', 'ambientes')}${x.o.local ? ', ' + esc(x.o.local) : ''}</span></span>
+        ${al ? `<span class="badge" title="Pendências e atrasos">${al}</span>` : ''}
+        <span class="pct">${x.p}<small>%</small></span><span class="chev">›</span>
+      </button>
+      <div class="bar"><i style="width:${x.p}%"></i></div>
+      ${msg ? `<p class="ov-msg bad">${msg}</p>` : feita(x) ? `<p class="ov-msg okt">Obra concluída</p>` : ''}
+      ${aberto ? (x.n ? `<ul class="ov-ambs">${ambsDe(x.o.id).map(ovAmb).join('')}</ul>` : `<p class="sub" style="margin-top:10px">Nenhum ambiente cadastrado.</p>`) + `<button class="btn ov-abrir" data-act="go-obra" data-id="${x.o.id}">Abrir obra</button>` : ''}
+    </section>`;
+  };
+  const f = S.gFiltro;
+  return `<section class="head"><h1>Visão geral</h1></section>
+  <div class="placar" role="tablist">
+    <button role="tab" class="${f === 'todas' ? 'on' : ''}" data-act="gfiltro" data-p="todas" aria-selected="${f === 'todas'}"><b>${cont.todas}</b><span>${cont.todas === 1 ? 'obra' : 'obras'}</span></button>
+    <button role="tab" class="${f === 'pend' ? 'on' : ''} ${cont.pend ? 'alerta' : ''}" data-act="gfiltro" data-p="pend" aria-selected="${f === 'pend'}"><b>${cont.pend}</b><span>com pendência</span></button>
+    <button role="tab" class="${f === 'ok' ? 'on' : ''}" data-act="gfiltro" data-p="ok" aria-selected="${f === 'ok'}"><b>${cont.ok}</b><span>${cont.ok === 1 ? 'concluída' : 'concluídas'}</span></button>
+  </div>
+  ${!S.obras.length ? vazio('Nenhuma obra cadastrada ainda.', 'Cadastre a primeira obra na aba Obras.') : l.length ? l.map(card).join('') : vazio('Nenhuma obra neste filtro.', 'Toque em "obras" para ver todas.')}
+  ${S.mode === 'db' ? '<button class="btn sair" data-act="sair">Sair da conta</button>' : ''}`;
+}
+
+/* ---------- painel de pendências ---------- */
+function vPend(){
+  const obras = [...S.obras].sort((a,b) => (a.criado||0) - (b.criado||0));
+  let totP = 0, totC = 0, totA = 0;
+  obras.forEach(o => { totP += pendObra(o.id); ambsDe(o.id).forEach(a => { totC += comprasAmb(a); totA += atrasosAmb(a); }); });
+  const modo = S.painel;
+  const blocos = obras.map(o => {
+    const grupos = [];
+    if(modo === 'pend'){
+      const g = o.pend.filter(visivel);
+      if(g.length) grupos.push({titulo:'Geral do cliente', html:g.map(p => linhaPend(p, `data-f="obra-pend-ok" data-o="${o.id}"`, '')).join(''), n:g.filter(p => !p.ok).length});
+      ambsDe(o.id).forEach(a => {
+        let n = 0;
+        const conta = p => { if(!p.ok) n++; return true; };
+        const itens = a.pend.filter(visivel).filter(conta).map(p => linhaPend(p, `data-f="amb-pend-ok" data-a="${a.id}"`, 'Ambiente'));
+        a.moveis.forEach(m => m.etapas.forEach(e => e.pend.filter(visivel).filter(conta).forEach(p => itens.push(linhaPend(p, `data-f="pend-ok" data-a="${a.id}" data-m="${m.id}" data-k="${e.key}"`, m.nome + ', ' + e.nome)))));
+        if(itens.length) grupos.push({titulo:a.nome, id:a.id, html:itens.join(''), n});
+      });
+    } else if(modo === 'compras'){
+      ambsDe(o.id).forEach(a => {
+        const itens = []; let n = 0;
+        a.moveis.forEach(m => { const e = etp(m, 'compras'); if(e) e.itens.filter(visivel).forEach(i => { if(!i.ok) n++; itens.push(linhaItem(i, `data-f="item-ok" data-a="${a.id}" data-m="${m.id}" data-k="compras"`, m.nome)); }); });
+        if(itens.length) grupos.push({titulo:a.nome, id:a.id, html:itens.join(''), n});
+      });
+    } else {
+      ambsDe(o.id).forEach(a => {
+        const itens = [];
+        a.moveis.forEach(m => m.etapas.filter(atrasada).forEach(e => itens.push(`<li><label><span class="et-dot st-late" style="margin-top:4px"></span><span><span class="txt">${esc(m.nome)}: ${esc(e.nome)}, ${etapaPct(e)}%</span><span class="who">${esc(e.resp || 'Sem responsável')}, prazo era ${fmtData(e.prazo)}</span></span></label></li>`)));
+        if(itens.length) grupos.push({titulo:a.nome, id:a.id, html:itens.join(''), n:itens.length});
+      });
+    }
+    if(!grupos.length) return '';
+    return `<section class="cli">
+      <button class="cli-top" data-act="go-obra" data-id="${o.id}"><strong>${esc(o.nome)}</strong><span class="pct">${obraPct(o.id)}<small>%</small></span></button>
+      ${grupos.map(g => `<div class="cli-grupo"><h3>${g.id ? `<button data-act="go-amb" data-id="${g.id}">${esc(g.titulo)} ›</button>` : `<span>${esc(g.titulo)}</span>`}<span class="conta">${g.n}</span></h3><ul class="check">${g.html}</ul></div>`).join('')}
+    </section>`;
+  }).join('');
+  const vazios = {pend:['Nenhuma pendência aberta.','Quando algo ficar faltando, registre na obra, no ambiente ou dentro da etapa do item.'], compras:['Nada faltando comprar.','Todos os itens de compras estão marcados.'], atraso:['Nenhuma etapa atrasada.','Coloque prazo nas etapas para acompanhar aqui.']};
+  return `<section class="head"><h1>Pendências</h1></section>
+  <div class="placar" role="tablist">
+    <button role="tab" class="${modo === 'pend' ? 'on' : ''} ${totP ? 'alerta' : ''}" data-act="painel" data-p="pend" aria-selected="${modo === 'pend'}"><b>${totP}</b><span>${totP === 1 ? 'pendência aberta' : 'pendências abertas'}</span></button>
+    <button role="tab" class="${modo === 'compras' ? 'on' : ''}" data-act="painel" data-p="compras" aria-selected="${modo === 'compras'}"><b>${totC}</b><span>${totC === 1 ? 'item a comprar' : 'itens a comprar'}</span></button>
+    <button role="tab" class="${modo === 'atraso' ? 'on' : ''} ${totA ? 'alerta' : ''}" data-act="painel" data-p="atraso" aria-selected="${modo === 'atraso'}"><b>${totA}</b><span>${totA === 1 ? 'etapa atrasada' : 'etapas atrasadas'}</span></button>
+  </div>
+  ${blocos || vazio(...vazios[modo])}`;
+}
+
+/* ---------- render ---------- */
+let dirty = false;
+function editando(){ const a = document.activeElement; return a && app.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName) && a.type !== 'checkbox'; }
+function schedule(){ if(editando()){ dirty = true; return; } render(); }
+app.addEventListener('focusout', () => { if(dirty) setTimeout(() => { if(!editando()){ dirty = false; render(); } }, 0); });
+
+function render(){
+  dirty = false;
+  const pronto = S.mode !== 'loading' && S.loaded.obras && S.loaded.ambientes;
+  if(S.mode === 'login') app.innerHTML = vLogin();
+  else if(!pronto) app.innerHTML = `<div class="empty">Carregando obras…</div>`;
+  else app.innerHTML = {geral:vGeral, obra:vObra, amb:vAmb, mov:vMov, pend:vPend}[S.view]?.() ?? vObras();
+  const n = S.obras.reduce((s,o) => s + pendObra(o.id), 0);
+  document.getElementById('pend-count').innerHTML = n ? `<span class="n">${n}</span>` : '';
+  document.getElementById('tab-geral').classList.toggle('on', S.view === 'geral');
+  document.getElementById('tab-obras').classList.toggle('on', !['pend','geral'].includes(S.view));
+  document.getElementById('tab-pend').classList.toggle('on', S.view === 'pend');
+  const nomes = new Set();
+  S.ambs.forEach(a => a.moveis.forEach(m => m.etapas.forEach(e => { if(e.resp) nomes.add(e.resp); })));
+  document.getElementById('pessoas').innerHTML = [...nomes].sort().map(n => `<option value="${esc(n)}">`).join('');
+  const b = document.getElementById('banner');
+  b.hidden = S.mode !== 'local';
+  b.textContent = 'Modo de teste: falta configurar o Supabase, os dados ficam só neste aparelho.';
+  document.querySelector('.top nav').style.visibility = S.mode === 'login' ? 'hidden' : '';
+}
+
+/* ---------- ações ---------- */
+function armar(btn, fn){
+  if(btn.dataset.armed){ fn(); return; }
+  btn.dataset.armed = '1'; const txt = btn.textContent;
+  btn.textContent = btn.classList.contains('x') ? 'Remover?' : 'Toque de novo para confirmar';
+  btn.classList.add('armed');
+  setTimeout(() => { if(btn.isConnected){ delete btn.dataset.armed; btn.textContent = txt; btn.classList.remove('armed'); } }, 3000);
+}
+function nomeLivre(nome, usados){
+  let final = nome, i = 2;
+  const u = usados.map(x => x.toLowerCase());
+  while(u.includes(final.toLowerCase())) final = nome + ' ' + i++;
+  return final;
+}
+function addAmb(nome){
+  nome = (nome || '').trim(); if(!nome) return toast('Digite o nome do ambiente.');
+  const final = nomeLivre(nome, ambsDe(S.id).map(a => a.nome));
+  const a = {id:uid(), obraId:S.id, nome:final, criado:Date.now(), pend:[], moveis:[]};
+  S.ambs.push(a); put('ambientes', a); go('amb', a.id); toast(final + ' criado. Agora adicione os itens.');
+}
+function addMov(a, nome){
+  nome = (nome || '').trim(); if(!nome) return toast('Digite o nome do item.');
+  const final = nomeLivre(nome, a.moveis.map(m => m.nome));
+  a.moveis.push({id:uid(), nome:final, criado:Date.now(), etapas:novasEtapas()});
+  put('ambientes', a); render(); toast(final + ' adicionado.');
+}
+function addPendEm(lista, inputId){
+  const inp = document.getElementById(inputId), txt = inp ? inp.value.trim() : '';
+  if(!txt){ toast('Descreva o que ficou faltando.'); return false; }
+  lista.push({id:uid(), t:txt, ok:false, criada:Date.now()});
+  return true;
+}
+
+document.addEventListener('click', ev => {
+  const nav = ev.target.closest('[data-nav]');
+  if(nav){ go(nav.dataset.nav); return; }
+  const t = ev.target.closest('[data-act]'); if(!t || !app.contains(t)) return;
+  const d = t.dataset, a = d.a ? amb(d.a) : null, m = mov(a, d.m), e = etp(m, d.k);
+  switch(d.act){
+    case 'go-obra': go('obra', d.id); break;
+    case 'go-amb': go('amb', d.id); break;
+    case 'go-mov': go('mov', d.a, d.m); break;
+    case 'painel': S.painel = d.p; render(); break;
+    case 'exp': S.exp.has(d.id) ? S.exp.delete(d.id) : S.exp.add(d.id); render(); break;
+    case 'gfiltro': S.gFiltro = d.p; render(); break;
+    case 'login': entrar(t); break;
+    case 'sair': sb.auth.signOut().finally(() => location.reload()); break;
+    case 'toggle-nova': S.novaObra = !S.novaObra; render(); if(S.novaObra) document.getElementById('no-nome').focus(); break;
+    case 'criar-obra': {
+      const nome = document.getElementById('no-nome').value.trim(), local = document.getElementById('no-local').value.trim();
+      if(!nome) return toast('Digite o nome do cliente.');
+      const o = {id:uid(), nome, local, criado:Date.now(), pend:[]};
+      S.obras.push(o); put('obras', o); S.novaObra = false; go('obra', o.id); break;
+    }
+    case 'add-amb': addAmb(d.nome); break;
+    case 'add-amb-custom': addAmb(document.getElementById('na-nome').value); break;
+    case 'add-mov': if(a) addMov(a, d.nome); break;
+    case 'add-mov-custom': if(a) addMov(a, document.getElementById('nm-nome').value); break;
+    case 'toggle-etapa': { const k = d.m + ':' + d.k; S.open.has(k) ? S.open.delete(k) : S.open.add(k); render(); break; }
+    case 'add-item': {
+      if(!e) return;
+      const txt = document.getElementById('ni-' + d.k).value.trim();
+      if(!txt) return toast('Digite o item do checklist.');
+      e.itens.push({id:uid(), t:txt, ok:false}); put('ambientes', a); render();
+      document.getElementById('ni-' + d.k)?.focus(); break;
+    }
+    case 'del-item': armar(t, () => { e.itens = e.itens.filter(i => i.id !== d.i); put('ambientes', a); render(); }); break;
+    case 'add-pend': if(e && addPendEm(e.pend, 'np-' + d.k)){ put('ambientes', a); render(); document.getElementById('np-' + d.k)?.focus(); toast('Pendência registrada.'); } break;
+    case 'del-pend': armar(t, () => { e.pend = e.pend.filter(p => p.id !== d.i); put('ambientes', a); render(); }); break;
+    case 'add-amb-pend': if(a && addPendEm(a.pend, 'nap')){ put('ambientes', a); render(); document.getElementById('nap')?.focus(); toast('Pendência registrada.'); } break;
+    case 'del-amb-pend': armar(t, () => { a.pend = a.pend.filter(p => p.id !== d.i); put('ambientes', a); render(); }); break;
+    case 'add-obra-pend': { const o = obra(d.o); if(o && addPendEm(o.pend, 'nop')){ put('obras', o); render(); document.getElementById('nop')?.focus(); toast('Pendência registrada.'); } break; }
+    case 'del-obra-pend': armar(t, () => { const o = obra(d.o); o.pend = o.pend.filter(p => p.id !== d.i); put('obras', o); render(); }); break;
+    case 'del-mov': armar(t, () => { a.moveis = a.moveis.filter(x => x.id !== d.m); put('ambientes', a); go('amb', a.id); toast('Item excluído.'); }); break;
+    case 'del-amb': armar(t, () => { const x = amb(d.id); S.ambs = S.ambs.filter(y => y.id !== d.id); remove('ambientes', d.id); go('obra', x.obraId); toast('Ambiente excluído.'); }); break;
+    case 'del-obra': armar(t, () => {
+      ambsDe(d.id).forEach(x => remove('ambientes', x.id));
+      S.ambs = S.ambs.filter(y => y.obraId !== d.id); S.obras = S.obras.filter(y => y.id !== d.id);
+      remove('obras', d.id); go('obras'); toast('Obra excluída.');
+    }); break;
+  }
+});
+
+function marcarPend(p, ok){ p.ok = ok; p.resolvida = ok ? Date.now() : null; if(ok){ S.feitos.add(p.id); toast('OK! Pendência resolvida.'); } }
+app.addEventListener('change', ev => {
+  const t = ev.target, f = t.dataset.f; if(!f) return;
+  if(f === 'obra-nome' || f === 'obra-local'){
+    const o = obra(S.id); if(!o) return;
+    if(f === 'obra-nome'){ if(!t.value.trim()) return toast('O nome do cliente não pode ficar vazio.'); o.nome = t.value.trim(); }
+    else o.local = t.value.trim();
+    put('obras', o); schedule(); return;
+  }
+  if(f === 'obra-pend-ok'){
+    const o = obra(t.dataset.o), p = o && o.pend.find(x => x.id === t.dataset.i); if(!p) return;
+    marcarPend(p, t.checked); put('obras', o); schedule(); return;
+  }
+  const a = amb(t.dataset.a); if(!a) return;
+  if(f === 'amb-nome'){ if(t.value.trim()){ a.nome = t.value.trim(); put('ambientes', a); } schedule(); return; }
+  if(f === 'amb-pend-ok'){ const p = a.pend.find(x => x.id === t.dataset.i); if(p){ marcarPend(p, t.checked); put('ambientes', a); } schedule(); return; }
+  const m = mov(a, t.dataset.m); if(!m) return;
+  if(f === 'mov-nome'){ if(t.value.trim()){ m.nome = t.value.trim(); put('ambientes', a); } schedule(); return; }
+  const e = etp(m, t.dataset.k); if(!e) return;
+  if(f === 'resp') e.resp = t.value.trim();
+  else if(f === 'prazo') e.prazo = t.value;
+  else if(f === 'obs') e.obs = t.value;
+  else if(f === 'etapa-ok') e.ok = t.checked;
+  else if(f === 'item-ok'){ const i = e.itens.find(x => x.id === t.dataset.i); if(i){ i.ok = t.checked; i.quando = t.checked ? Date.now() : null; if(t.checked){ S.feitos.add(i.id); toast('OK! ' + i.t + (e.key === 'compras' ? ' comprado.' : ' feito.')); } } }
+  else if(f === 'pend-ok'){ const p = e.pend.find(x => x.id === t.dataset.i); if(p) marcarPend(p, t.checked); }
+  put('ambientes', a); schedule();
+});
+
+app.addEventListener('input', ev => {
+  if(ev.target.id === 'busca'){ S.busca = ev.target.value; document.getElementById('lista-obras').innerHTML = listaObras(); }
+});
+app.addEventListener('keydown', ev => {
+  if(ev.key !== 'Enter' || ev.target.tagName !== 'INPUT' || ev.target.dataset.f) return;
+  const b = ev.target.closest('.inline, .form')?.querySelector('button[data-act]');
+  if(b){ ev.preventDefault(); b.click(); }
+});
+
+/* ---------- início ---------- */
+try{ history.replaceState({view:'geral', id:null, mid:null}, ''); }catch(e){}
+render();
+let sb = null;
+function vLogin(){
+  return `<section class="login"><div class="marca"><span>GRUPO</span><b>ART</b></div><span class="sub">Controle de obras</span>
+    <div class="form">
+      <label>E-mail<input id="lg-email" type="email" autocomplete="username" inputmode="email"></label>
+      <label>Senha<input id="lg-senha" type="password" autocomplete="current-password"></label>
+      <button class="btn solid" data-act="login">Entrar</button>
+    </div></section>`;
+}
+async function entrar(btn){
+  const email = document.getElementById('lg-email').value.trim(), password = document.getElementById('lg-senha').value;
+  if(!email || !password) return toast('Preencha e-mail e senha.');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  const {error} = await sb.auth.signInWithPassword({email, password});
+  if(error){ btn.disabled = false; btn.textContent = 'Entrar'; return toast('E-mail ou senha incorretos.'); }
+  conectar();
+}
+function comecar(){
+  store.sub('obras', l => onColl('obras', l));
+  store.sub('ambientes', l => onColl('ambientes', l));
+  for(const [p] of [...pending]){ const d = pending.get(p); pending.delete(p); write(p, d); }
+  render();
+}
+function conectar(){ store = supaStore(sb); S.mode = 'db'; render(); comecar(); }
+(async () => {
+  const configurado = window.supabase && !SUPABASE_URL.startsWith('COLE') && !SUPABASE_KEY.startsWith('COLE');
+  if(!configurado){ store = localStore(); S.mode = 'local'; comecar(); return; }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const {data} = await sb.auth.getSession();
+  if(data && data.session) conectar();
+  else { S.mode = 'login'; render(); }
+})();
+</script>
+</body>
+</html>
