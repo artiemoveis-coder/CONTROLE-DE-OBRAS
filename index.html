@@ -820,7 +820,7 @@ function comecar(){
 }
 function conectar(){ store = supaStore(sb); S.mode = 'db'; render(); comecar(); }
 (async () => {
-  const configurado = window.supabase && !SUPABASE_URL.startsWith('COLE') && !SUPABASE_KEY.startsWith('COLE');
+  const configurado = window.supabase && !SUPABASE_URL.startsWith('https://qnkngoixxuzslsrolcvm.supabase.co/rest/v1/') && !SUPABASE_KEY.startsWith('sb_publishable_Xva36mu0VkSbZmphPXCjag_GOCNh-xL');
   if(!configurado){ store = localStore(); S.mode = 'local'; comecar(); return; }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const {data} = await sb.auth.getSession();
